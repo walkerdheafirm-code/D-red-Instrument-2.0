@@ -9,7 +9,7 @@ import { RecordingCard } from '../components/recordings/RecordingCard'
 import { useRecordingContext } from '../context/RecordingContext'
 import { sortRecordings } from '../utils/sortHelpers'
 
-const PAGE_SIZE = 4
+const PAGE_SIZE = 6
 
 export function RecordingsPage() {
   const { recordings } = useRecordingContext()
