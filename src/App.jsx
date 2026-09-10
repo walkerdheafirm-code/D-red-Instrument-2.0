@@ -1,121 +1,84 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
+import { PageLayout } from './components/layout/PageLayout'
+import { SplashScreen } from './components/common/SplashScreen'
+import { AchievementProvider } from './context/AchievementContext'
+import { BeatPatternProvider } from './context/BeatPatternContext'
+import { MetronomeProvider } from './context/MetronomeContext'
+import { PracticeProvider } from './context/PracticeContext'
+import { RecordingProvider } from './context/RecordingContext'
+import { AchievementsPage } from './pages/AchievementsPage'
+import { BeatPatternPage } from './pages/BeatPatternPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { DrumKitPage } from './pages/DrumKitPage'
+import { LaunchpadPage } from './pages/LaunchpadPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+import { PianoPage } from './pages/PianoPage'
+import { PracticeModePage } from './pages/PracticeModePage'
+import { RecordingDetailPage } from './pages/RecordingDetailPage'
+import { RecordingFormPage } from './pages/RecordingFormPage'
+import { RecordingsPage } from './pages/RecordingsPage'
 
-function App() {
-  const [count, setCount] = useState(0)
+function AppRoutes() {
+  const navigate = useNavigate()
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      return !sessionStorage.getItem('dred_splash_shown')
+    } catch {
+      return false
+    }
+  })
+
+  const handleSplashComplete = () => {
+    try {
+      sessionStorage.setItem('dred_splash_shown', 'true')
+    } catch {
+      // ignore
+    }
+    setShowSplash(false)
+    navigate('/', { replace: true })
+  }
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      <PageLayout>
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/piano" element={<PianoPage />} />
+          <Route path="/launchpad" element={<LaunchpadPage />} />
+          <Route path="/drumkit" element={<DrumKitPage />} />
+          <Route path="/recordings" element={<RecordingsPage />} />
+          <Route path="/recordings/:id" element={<RecordingDetailPage />} />
+          <Route path="/recordings/new" element={<RecordingFormPage />} />
+          <Route path="/recordings/:id/edit" element={<RecordingFormPage />} />
+          <Route path="/practice" element={<PracticeModePage />} />
+          <Route path="/practice/:challengeId" element={<PracticeModePage />} />
+          <Route path="/beat-patterns" element={<BeatPatternPage />} />
+          <Route path="/achievements" element={<AchievementsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </PageLayout>
     </>
+  )
+}
+
+function App() {
+  return (
+    <RecordingProvider>
+      <MetronomeProvider>
+        <PracticeProvider>
+          <BeatPatternProvider>
+            <AchievementProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </AchievementProvider>
+          </BeatPatternProvider>
+        </PracticeProvider>
+      </MetronomeProvider>
+    </RecordingProvider>
   )
 }
 

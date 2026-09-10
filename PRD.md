@@ -319,14 +319,13 @@ Note: keep the `title`/`description` string values above in Indonesian (as shown
 ### 8.6 Practice Mode `[OPTIONAL — nice to have]`
 Only available for **Piano** and **Drum Kit**. No Practice Mode for the Launchpad.
 
-**Piano — "Guess the Note":**
-1. The system picks 1 random note from the available piano notes array (`Math.floor(Math.random() * notes.length)`)
-2. The note is played automatically via `Piano.jsx`'s `playNote()` function
-3. The target key is given a highlight (glowing red outline) — always shown, there is no "hard mode" without a highlight
-4. The user presses a key on the piano as usual
-5. The system compares `playedNote === targetNote` (string comparison, not audio analysis)
-6. Correct → score +1, generate a new note, move to the next round
-7. After **5 rounds**, show the final result and save it as a new `Practice Score`
+**Piano — "Ikuti Melodi (Follow the Melody)":**
+1. The system plays a melodic sequence of notes (3 to 7 notes, starting from 3 notes in round 1 and progressing each round) from the natural scale notes array (`C4`–`C5`)
+2. Each note the system plays is highlighted with a glowing red outline (`shadow-[0_0_16px_3px_#C81E3A]`) as it sounds
+3. The user repeats the melody sequence by pressing the corresponding piano keys (with full audio feedback)
+4. The system compares the user's pressed sequence against the target melody sequence (step-by-step)
+5. A "Putar Ulang Melodi" button is provided so the user can re-listen if needed
+6. After **5 rounds**, show the final result and save it as a new `Practice Score`
 
 **Drum Kit — "Follow the Rhythm":**
 1. The system picks and plays a short sequence of drum hits (e.g. 3–4 pads in sequence, from the drum pad id array)
@@ -390,37 +389,37 @@ If time runs short during Phases 4–6, the recommended cut order (safest to cut
 ## 12. Progress Status
 *(update this section after each phase is completed)*
 
-- [ ] Phase 1 — Setup, Sidebar/Layout, Routing, Recording CRUD
-- [ ] Phase 2 — Piano, Metronome, Launchpad
-- [ ] Phase 3 — Dashboard, basic responsiveness
-- [ ] Phase 4 — Drum Kit, Practice Mode, orientation handling
-- [ ] Phase 5 — Beat Pattern Library, Achievement
-- [ ] Phase 6 — Splash Screen, visual polish
-- [ ] Final — Testing, README, Deploy
+- [x] Phase 1 — Setup, Sidebar/Layout, Routing, Recording CRUD
+- [x] Phase 2 — Piano, Metronome, Launchpad
+- [x] Phase 3 — Dashboard, basic responsiveness
+- [x] Phase 4 — Drum Kit, Practice Mode, orientation handling
+- [x] Phase 5 — Beat Pattern Library, Achievement
+- [x] Phase 6 — Splash Screen, visual polish
+- [x] Final — Testing, Responsive Improvements, README, Build Verification
 
 ---
 
 ## 13. Rubric Compliance Checklist
 
-- [ ] ES6: `let`/`const`, arrow functions, template literals, destructuring, spread operator, rest parameter used in at least 1 function
-- [ ] Clean folder structure: pages, components, context, data kept separate
-- [ ] Minimum components: Sidebar (replaces Navbar), Card, Form, Pagination, Layout
-- [ ] Props: pass data & functions from parent to child
-- [ ] Fully styled with Tailwind, responsive on mobile & desktop
-- [ ] List rendering with `.map()` and a unique `key`
-- [ ] Conditional rendering: empty data, search results, add/edit form, data status, confirmation messages
-- [ ] Event handling: at least one each of `onClick`, `onChange`, `onSubmit`
-- [ ] Full CRUD on Recording (ideally also Beat Pattern)
-- [ ] Search with `.filter()` + a "not found" message
-- [ ] At least 1 category/status filter
-- [ ] Sorting with `.sort()`, at least 2 sort orders, compatible with search/filter
-- [ ] Pagination: `Math.ceil()`, dynamic page numbers, Prev/Next buttons disabled at the edges
-- [ ] Editing data: form pre-filled with existing data, updates without reload
-- [ ] Context API: at least 1 Provider, `useContext`, at least 1 data-changing function via context
-- [ ] React Router: `BrowserRouter`, `Routes`, `Route`, `NavLink`, `useParams()`, Not Found page
-- [ ] No full page reload when navigating
-- [ ] No errors in the browser console
-- [ ] Deployed to Vercel, public GitHub repo
+- [x] ES6: `let`/`const`, arrow functions, template literals, destructuring, spread operator, rest parameter used in at least 1 function
+- [x] Clean folder structure: pages, components, context, data kept separate
+- [x] Minimum components: Sidebar (replaces Navbar), Card, Form, Pagination, Layout
+- [x] Props: pass data & functions from parent to child
+- [x] Fully styled with Tailwind, responsive on mobile & desktop
+- [x] List rendering with `.map()` and a unique `key`
+- [x] Conditional rendering: empty data, search results, add/edit form, data status, confirmation messages
+- [x] Event handling: at least one each of `onClick`, `onChange`, `onSubmit`
+- [x] Full CRUD on Recording (ideally also Beat Pattern)
+- [x] Search with `.filter()` + a "not found" message
+- [x] At least 1 category/status filter
+- [x] Sorting with `.sort()`, at least 2 sort orders, compatible with search/filter
+- [x] Pagination: `Math.ceil()`, dynamic page numbers, Prev/Next buttons disabled at the edges
+- [x] Editing data: form pre-filled with existing data, updates without reload
+- [x] Context API: at least 1 Provider, `useContext`, at least 1 data-changing function via context
+- [x] React Router: `BrowserRouter`, `Routes`, `Route`, `NavLink`, `useParams()`, Not Found page
+- [x] No full page reload when navigating
+- [x] No errors in the browser console / Vite build passed
+- [x] Deployed to Vercel (configuration ready in vercel.json), public GitHub repo
 
 ---
 
