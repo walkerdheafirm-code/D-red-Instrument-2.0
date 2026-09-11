@@ -11,7 +11,7 @@ import { LAUNCHPAD_PADS, useAudioEngine } from '../hooks/useAudioEngine'
 export function BeatPatternPage() {
   const { patterns, addPattern, updatePattern, deletePattern } = useBeatPatternContext()
   const { tempo } = useMetronomeContext()
-  const { playDrumPad, playLaunchpadPad } = useAudioEngine()
+  const { playDrumPad, playLaunchpadPad, ensureAudioRunning } = useAudioEngine()
 
   // Filter & Search state
   const [search, setSearch] = useState('')
@@ -35,8 +35,13 @@ export function BeatPatternPage() {
   }, [])
 
   // Sequencer playback loop
-  const startPlayback = (pattern) => {
+  const startPlayback = async (pattern) => {
     if (timerRef.current) clearInterval(timerRef.current)
+    try {
+      await ensureAudioRunning?.()
+    } catch {
+      // ignore
+    }
     setPlayingPatternId(pattern.id)
 
     // Calculate step interval based on tempo (8th note per step: (60 / tempo) * 1000 / 2)

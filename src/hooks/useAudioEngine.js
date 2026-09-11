@@ -1,22 +1,9 @@
 import * as Tone from 'tone'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AudioContext Configuration
-// Use 'playback' latencyHint for a larger audio buffer, ensuring maximum
-// audio stability and eliminating crackle/clicks during rapid repeated playback.
+// Audio Engine Configuration
+// Use standard interactive context for prompt response in live playing & sequencer.
 // ─────────────────────────────────────────────────────────────────────────────
-if (typeof window !== 'undefined') {
-  try {
-    const ctx = new Tone.Context({ latencyHint: 'playback' })
-    Tone.setContext(ctx)
-  } catch (err) {
-    try {
-      Tone.getContext().latencyHint = 'playback'
-    } catch {
-      // ignore
-    }
-  }
-}
 
 export const LAUNCHPAD_PADS = [
   { id: 1, name: 'Kick Deep', key: '1', note: 'C1', type: 'membrane', color: 'border-red-600 bg-red-950/40' },
@@ -57,15 +44,14 @@ let resumePromise = null
  * Polyphonic voice pool for NoiseSynth.
  * Tone.NoiseSynth extends Instrument, not Monophonic, so Tone.PolySynth cannot wrap it
  * directly without throwing an assertion error. PolyNoiseSynth maintains a pool of
- * Tone.NoiseSynth voices in round-robin so rapid consecutive hits overlap without
- * prematurely clipping previous envelopes.
+ * 3 Tone.NoiseSynth voices in round-robin so rapid consecutive hits overlap cleanly.
  */
 class PolyNoiseSynth {
-  constructor(options, voiceCount = 8) {
+  constructor(options, voiceCount = 3) {
     this.voices = Array.from({ length: voiceCount }, () => new Tone.NoiseSynth(options))
     this.voiceIndex = 0
     this.maxPolyphony = voiceCount
-    this._volumeValue = 0
+    this._volumeValue = options?.volume ?? 0
     this.volume = {
       _parent: this,
       get value() {
@@ -85,10 +71,76 @@ class PolyNoiseSynth {
     return this
   }
 
-  triggerAttackRelease(duration, time, velocity) {
+  triggerAttackRelease(duration = '16n', time, velocity) {
     const voice = this.voices[this.voiceIndex]
     this.voiceIndex = (this.voiceIndex + 1) % this.voices.length
-    return voice.triggerAttackRelease(duration, time, velocity)
+    const safeDuration = (typeof duration === 'string' || (typeof duration === 'number' && duration < 1.5)) ? duration : '16n'
+    const safeTime = (typeof time === 'number' && time >= Tone.now()) ? time : Tone.now()
+    return voice.triggerAttackRelease(safeDuration, safeTime, velocity)
+  }
+
+  dispose() {
+    this.voices.forEach((v) => v.dispose())
+  }
+}
+
+/**
+ * Polyphonic voice pool for MetalSynth.
+ * Tone.MetalSynth extends Instrument (not Monophonic), so Tone.PolySynth cannot wrap it
+ * without breaking its (duration, time) argument signature and causing 450-second voice lockups.
+ * PolyMetalSynth maintains 3 lightweight voices in round-robin and correctly handles
+ * both (duration, time) and (frequency, duration, time).
+ */
+class PolyMetalSynth {
+  constructor(options, voiceCount = 3) {
+    this.voices = Array.from({ length: voiceCount }, () => new Tone.MetalSynth(options))
+    this.voiceIndex = 0
+    this.maxPolyphony = voiceCount
+    this._volumeValue = options?.volume ?? 0
+    this.volume = {
+      _parent: this,
+      get value() {
+        return this._parent._volumeValue
+      },
+      set value(val) {
+        this._parent._volumeValue = val
+        this._parent.voices.forEach((v) => {
+          v.volume.value = val
+        })
+      },
+    }
+  }
+
+  connect(destination) {
+    this.voices.forEach((v) => v.connect(destination))
+    return this
+  }
+
+  triggerAttackRelease(arg1, arg2, arg3) {
+    const voice = this.voices[this.voiceIndex]
+    this.voiceIndex = (this.voiceIndex + 1) % this.voices.length
+
+    let duration = '16n'
+    let time = Tone.now()
+
+    if (typeof arg1 === 'number') {
+      // Called as: triggerAttackRelease(frequency, duration, time)
+      voice.frequency.value = arg1
+      duration = typeof arg2 === 'string' ? arg2 : '16n'
+      time = typeof arg3 === 'number' ? arg3 : Tone.now()
+    } else {
+      // Called as: triggerAttackRelease(duration, time)
+      duration = typeof arg1 === 'string' ? arg1 : '16n'
+      time = typeof arg2 === 'number' ? arg2 : Tone.now()
+    }
+
+    // Safety: ensure duration never exceeds reasonable percussion length
+    if (typeof duration === 'number' && duration > 1.5) {
+      duration = '16n'
+    }
+
+    const safeTime = (typeof time === 'number' && time >= Tone.now()) ? time : Tone.now()
+    return voice.triggerAttackRelease(duration, safeTime)
   }
 
   dispose() {
@@ -101,7 +153,6 @@ class PolyNoiseSynth {
  * Connected explicitly to masterLimiter (-1 dB threshold) to prevent clipping and audio crackle.
  */
 function initSynths() {
-  console.log('[AudioEngine] initSynths() dipanggil dari dalam gesture user')
   if (isInitialized) return
   isInitialized = true
 
@@ -113,11 +164,10 @@ function initSynths() {
     // ── 1. Piano Fallback Synth (PolySynth) ──────────────────────────────────
     // Rich, warm triangle-wave polyphonic piano that works 100% offline immediately.
     const polySynth = new Tone.PolySynth(Tone.Synth, {
-      maxPolyphony: 8,
+      maxPolyphony: 6,
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.005, decay: 0.8, sustain: 0.25, release: 1.2 },
     }).connect(masterLimiter)
-    polySynth.maxPolyphony = 8
     polySynth.volume.value = -2
     fallbackPiano = polySynth
 
@@ -145,38 +195,34 @@ function initSynths() {
 
     // ── 3. Launchpad Synths ──────────────────────────────────────────────────
     const kickSynth = new Tone.PolySynth(Tone.MembraneSynth, {
-      maxPolyphony: 8,
+      maxPolyphony: 4,
       pitchDecay: 0.05,
       octaves: 4,
     }).connect(masterLimiter)
-    kickSynth.maxPolyphony = 8
-    kickSynth.volume.value = -2
+    kickSynth.volume.value = -3
 
     const snareNoise = new PolyNoiseSynth({
       noise: { type: 'white' },
       envelope: { attack: 0.001, decay: 0.15, sustain: 0 },
-    }, 8).connect(masterLimiter)
-    snareNoise.volume.value = -4
+    }, 3).connect(masterLimiter)
+    snareNoise.volume.value = -5
 
-    const metalSynth = new Tone.PolySynth(Tone.MetalSynth, {
-      maxPolyphony: 8,
+    const metalSynth = new PolyMetalSynth({
       frequency: 200,
       envelope: { attack: 0.001, decay: 0.08, release: 0.01 },
       harmonicity: 5.1,
       modulationIndex: 32,
       resonance: 4000,
       octaves: 1.5,
-    }).connect(masterLimiter)
-    metalSynth.maxPolyphony = 8
+    }, 3).connect(masterLimiter)
     metalSynth.volume.value = -8
 
     const fmSynth = new Tone.FMSynth().connect(masterLimiter)
     fmSynth.volume.value = -4
 
     const leadSynth = new Tone.PolySynth(Tone.Synth, {
-      maxPolyphony: 8,
+      maxPolyphony: 6,
     }).connect(masterLimiter)
-    leadSynth.maxPolyphony = 8
     leadSynth.volume.value = -4
 
     synths = {
@@ -196,58 +242,52 @@ function initSynths() {
 
     // ── 4. Drum Kit Synths ───────────────────────────────────────────────────
     const drumKick = new Tone.PolySynth(Tone.MembraneSynth, {
-      maxPolyphony: 8,
+      maxPolyphony: 4,
       pitchDecay: 0.05,
       octaves: 5,
       envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.05 },
     }).connect(masterLimiter)
-    drumKick.maxPolyphony = 8
-    drumKick.volume.value = 0
+    drumKick.volume.value = -3
 
     const drumSnare = new PolyNoiseSynth({
       noise: { type: 'white' },
       envelope: { attack: 0.001, decay: 0.14, sustain: 0, release: 0.03 },
-    }, 8).connect(masterLimiter)
-    drumSnare.volume.value = -4
+    }, 3).connect(masterLimiter)
+    drumSnare.volume.value = -5
 
-    const drumHihat = new Tone.PolySynth(Tone.MetalSynth, {
-      maxPolyphony: 8,
+    const drumHihat = new PolyMetalSynth({
       frequency: 450,
       envelope: { attack: 0.001, decay: 0.04, release: 0.01 },
       harmonicity: 5.1,
       modulationIndex: 32,
       resonance: 4500,
       octaves: 1.5,
-    }).connect(masterLimiter)
-    drumHihat.maxPolyphony = 8
+    }, 3).connect(masterLimiter)
     drumHihat.volume.value = -8
 
     const drumTom = new Tone.PolySynth(Tone.MembraneSynth, {
-      maxPolyphony: 8,
+      maxPolyphony: 4,
       pitchDecay: 0.04,
       octaves: 3,
       envelope: { attack: 0.001, decay: 0.16, sustain: 0, release: 0.04 },
     }).connect(masterLimiter)
-    drumTom.maxPolyphony = 8
-    drumTom.volume.value = -2
+    drumTom.volume.value = -4
 
-    const drumCymbal = new Tone.PolySynth(Tone.MetalSynth, {
-      maxPolyphony: 8,
+    const drumCymbal = new PolyMetalSynth({
       frequency: 320,
       envelope: { attack: 0.001, decay: 0.25, release: 0.05 },
       harmonicity: 5.1,
       modulationIndex: 32,
       resonance: 4000,
       octaves: 1.5,
-    }).connect(masterLimiter)
-    drumCymbal.maxPolyphony = 8
+    }, 3).connect(masterLimiter)
     drumCymbal.volume.value = -8
 
     const drumClap = new PolyNoiseSynth({
       noise: { type: 'pink' },
       envelope: { attack: 0.002, decay: 0.1, sustain: 0, release: 0.02 },
-    }, 8).connect(masterLimiter)
-    drumClap.volume.value = -4
+    }, 3).connect(masterLimiter)
+    drumClap.volume.value = -5
 
     drumSynths = {
       kick: drumKick,
@@ -374,7 +414,7 @@ export function useAudioEngine() {
         return
       }
 
-      const playTime = time !== undefined ? time : Tone.now()
+      const playTime = (typeof time === 'number' && time >= Tone.now()) ? time : Tone.now()
       activeEngine.triggerAttackRelease(note, '8n', playTime)
     } catch (err) {
       console.error('[AudioEngine] Error in playPianoNote for', note, err)
@@ -397,7 +437,7 @@ export function useAudioEngine() {
     if (!synths) return
 
     try {
-      const playTime = time !== undefined ? time : Tone.now()
+      const playTime = (typeof time === 'number' && time >= Tone.now()) ? time : Tone.now()
       if (pad.type === 'noise' || pad.type === 'clap') {
         synths.noise.triggerAttackRelease('16n', playTime)
       } else if (pad.type === 'metal' || pad.type === 'metal-crash') {
@@ -438,21 +478,16 @@ export function useAudioEngine() {
     }
 
     try {
-      const playTime = time !== undefined ? time : Tone.now()
+      const playTime = (typeof time === 'number' && time >= Tone.now()) ? time : Tone.now()
       if (padId === 'kick') {
-        // MembraneSynth: (note, duration, time)
         synth.triggerAttackRelease('C1', '16n', playTime)
       } else if (padId === 'tom') {
-        // MembraneSynth: (note, duration, time)
         synth.triggerAttackRelease('G2', '16n', playTime)
       } else if (padId === 'snare' || padId === 'clap') {
-        // NoiseSynth: (duration, time)
         synth.triggerAttackRelease('16n', playTime)
       } else if (padId === 'hihat') {
-        // MetalSynth: (note/frequency, duration, time)
         synth.triggerAttackRelease(450, '32n', playTime)
       } else if (padId === 'cymbal') {
-        // MetalSynth: (note/frequency, duration, time)
         synth.triggerAttackRelease(320, '16n', playTime)
       }
     } catch (err) {
@@ -460,5 +495,5 @@ export function useAudioEngine() {
     }
   }
 
-  return { playPianoNote, playLaunchpadPad, playDrumPad }
+  return { playPianoNote, playLaunchpadPad, playDrumPad, ensureAudioRunning }
 }

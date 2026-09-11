@@ -52,7 +52,13 @@ export function PatternModal({
 
   const startPreview = useCallback(async () => {
     stopPreview()
-    await Tone.start()
+    try {
+      if (Tone.context.state !== 'running') {
+        await Tone.start()
+      }
+    } catch {
+      // ignore
+    }
     setIsPlaying(true)
 
     // 8th note interval (ms)
@@ -63,15 +69,14 @@ export function PatternModal({
       setCurrentStep(stepIdx)
       const currentSteps = stepsRef.current
       const currentInst = instrumentRef.current
-      const now = Tone.now()
 
       currentSteps.forEach((row) => {
         if (row.active[stepIdx]) {
           if (currentInst === 'drumkit') {
-            playDrumPad?.(row.track, now)
+            playDrumPad?.(row.track)
           } else if (currentInst === 'launchpad') {
             const pad = LAUNCHPAD_PADS.find((p) => String(p.id) === String(row.track))
-            if (pad) playLaunchpadPad?.(pad, now)
+            if (pad) playLaunchpadPad?.(pad)
           }
         }
       })
