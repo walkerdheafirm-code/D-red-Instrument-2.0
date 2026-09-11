@@ -3,6 +3,12 @@
  * Definitions and unlock evaluation criteria for the Achievement system.
  */
 
+// Helper to filter for user-created recordings only (ignoring preset templates)
+const getUserRecordings = (recordings = []) =>
+  recordings.filter(
+    (r) => !r.isDefault && r.id !== 'rec-1' && r.id !== 'rec-2' && r.id !== 'rec-3',
+  )
+
 export const ACHIEVEMENTS = [
   {
     id: 'badge-first-recording',
@@ -10,7 +16,8 @@ export const ACHIEVEMENTS = [
     description: 'Berhasil membuat dan menyimpan rekaman pertamamu.',
     icon: '🎙️',
     category: 'recording',
-    checkUnlocked: ({ recordings }) => recordings.length >= 1,
+    isUnlocked: false,
+    checkUnlocked: ({ recordings = [] }) => getUserRecordings(recordings).length >= 1,
   },
   {
     id: 'badge-recording-collector',
@@ -18,7 +25,8 @@ export const ACHIEVEMENTS = [
     description: 'Menyimpan minimal 5 rekaman dalam perpustakaan instrumen.',
     icon: '📚',
     category: 'recording',
-    checkUnlocked: ({ recordings }) => recordings.length >= 5,
+    isUnlocked: false,
+    checkUnlocked: ({ recordings = [] }) => getUserRecordings(recordings).length >= 5,
   },
   {
     id: 'badge-first-practice',
@@ -26,7 +34,8 @@ export const ACHIEVEMENTS = [
     description: 'Menyelesaikan 1 sesi tantangan di Practice Mode.',
     icon: '🎯',
     category: 'practice',
-    checkUnlocked: ({ scores }) => scores.length >= 1,
+    isUnlocked: false,
+    checkUnlocked: ({ scores = [] }) => scores.length >= 1,
   },
   {
     id: 'badge-perfect-score',
@@ -34,7 +43,8 @@ export const ACHIEVEMENTS = [
     description: 'Meraih skor 100% pada sesi tantangan Practice Mode.',
     icon: '⭐',
     category: 'practice',
-    checkUnlocked: ({ scores }) => scores.some((s) => s.score === 100),
+    isUnlocked: false,
+    checkUnlocked: ({ scores = [] }) => scores.some((s) => s.score === 100),
   },
   {
     id: 'badge-beat-maker',
@@ -42,7 +52,8 @@ export const ACHIEVEMENTS = [
     description: 'Membuat dan menyimpan setidaknya 1 pola ketukan kustom sendiri.',
     icon: '🎛️',
     category: 'pattern',
-    checkUnlocked: ({ patterns }) => patterns.some((p) => !p.isDefault),
+    isUnlocked: false,
+    checkUnlocked: ({ patterns = [] }) => patterns.some((p) => !p.isDefault),
   },
   {
     id: 'badge-multi-instrument',
@@ -50,8 +61,10 @@ export const ACHIEVEMENTS = [
     description: 'Pernah membuat rekaman dengan setidaknya 2 instrumen berbeda.',
     icon: '🎶',
     category: 'recording',
-    checkUnlocked: ({ recordings }) => {
-      const distinctInstruments = new Set(recordings.map((r) => r.instrument).filter(Boolean))
+    isUnlocked: false,
+    checkUnlocked: ({ recordings = [] }) => {
+      const userRecs = getUserRecordings(recordings)
+      const distinctInstruments = new Set(userRecs.map((r) => r.instrument).filter(Boolean))
       return distinctInstruments.size >= 2
     },
   },

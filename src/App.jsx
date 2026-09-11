@@ -70,11 +70,11 @@ function App() {
       <MetronomeProvider>
         <PracticeProvider>
           <BeatPatternProvider>
-            <AchievementProvider>
-              <BrowserRouter>
+            <BrowserRouter>
+              <AchievementProvider>
                 <AppRoutes />
-              </BrowserRouter>
-            </AchievementProvider>
+              </AchievementProvider>
+            </BrowserRouter>
           </BeatPatternProvider>
         </PracticeProvider>
       </MetronomeProvider>
