@@ -1,14 +1,16 @@
 import { useState } from 'react'
+import { playStudioEnterSound } from '../../utils/uiSound'
 
 export function SplashScreen({ onComplete }) {
   const [isExiting, setIsExiting] = useState(false)
 
   const handleEnterStudio = () => {
     if (isExiting) return
+    playStudioEnterSound()
     setIsExiting(true)
     setTimeout(() => {
       onComplete()
-    }, 350)
+    }, 380)
   }
 
   return (

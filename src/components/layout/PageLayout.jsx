@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { playNavClickSound } from '../../utils/uiSound'
 import { Sidebar } from './Sidebar'
 
 export function PageLayout({ children }) {
@@ -36,9 +37,12 @@ export function PageLayout({ children }) {
             <div className="mb-4 flex items-center justify-between border-b border-[#2A2828] pb-4 lg:hidden">
               <button
                 type="button"
-                onClick={() => setMobileOpen(true)}
+                onClick={() => {
+                  playNavClickSound()
+                  setMobileOpen(true)
+                }}
                 aria-label="Buka Menu"
-                className="flex items-center gap-2 rounded border border-[#2A2828] bg-[#151417] px-3 py-2 text-sm text-[#EDE9E6] transition hover:border-[#C81E3A]"
+                className="flex items-center gap-2 rounded border border-[#2A2828] bg-[#151417] px-3 py-2 text-sm text-[#EDE9E6] transition hover:border-[#C81E3A] cursor-pointer"
               >
                 <span className="text-[#C81E3A]">☰</span>
                 <span className="font-medium">Menu</span>

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { playNavClickSound } from '../../utils/uiSound'
 
 const navItems = [
   { label: 'Dashboard', path: '/', icon: '◉' },
@@ -50,12 +51,13 @@ export function Sidebar({ isCollapsed, onToggleCollapse, mobileOpen, onCloseMobi
             <button
               type="button"
               onClick={() => {
+                playNavClickSound()
                 onToggleCollapse()
                 onCloseMobile()
               }}
               title="Sembunyikan Sidebar"
               aria-label="Sembunyikan Sidebar"
-              className="flex h-7 w-7 items-center justify-center rounded border border-[#2A2828] bg-[#151417] text-sm text-[#EDE9E6] transition hover:border-[#C81E3A] hover:text-[#C81E3A] active:scale-95"
+              className="flex h-7 w-7 items-center justify-center rounded border border-[#2A2828] bg-[#151417] text-sm text-[#EDE9E6] transition hover:border-[#C81E3A] hover:text-[#C81E3A] active:scale-95 cursor-pointer"
             >
               <span className="leading-none text-sm">☰</span>
             </button>
@@ -68,10 +70,13 @@ export function Sidebar({ isCollapsed, onToggleCollapse, mobileOpen, onCloseMobi
                 key={item.path}
                 to={item.path}
                 end={item.path === '/'}
-                onClick={onCloseMobile}
+                onClick={() => {
+                  playNavClickSound()
+                  onCloseMobile()
+                }}
                 className={({ isActive }) =>
                   [
-                    'flex items-center gap-3 rounded-r border-y border-r px-3 py-3 text-sm transition',
+                    'flex items-center gap-3 rounded-r border-y border-r px-3 py-3 text-sm transition cursor-pointer',
                     isActive
                       ? 'border-l-4 border-l-[#C81E3A] border-y-[#C81E3A]/40 border-r-[#C81E3A]/40 bg-[#6B1420]/30 text-[#EDE9E6] font-medium'
                       : 'border-transparent text-[#7A7570] hover:border-[#2A2828] hover:bg-[#1C1B1E] hover:text-[#EDE9E6]',
@@ -100,10 +105,13 @@ export function Sidebar({ isCollapsed, onToggleCollapse, mobileOpen, onCloseMobi
       {isCollapsed && (
         <button
           type="button"
-          onClick={onToggleCollapse}
+          onClick={() => {
+            playNavClickSound()
+            onToggleCollapse()
+          }}
           title="Buka Sidebar"
           aria-label="Buka Sidebar"
-          className="fixed left-4 top-4 z-50 hidden h-10 w-10 items-center justify-center rounded border border-[#2A2828] bg-[#151417]/90 text-lg text-[#EDE9E6] shadow-[0_4px_16px_rgba(0,0,0,0.6)] backdrop-blur-xs transition-all duration-200 hover:border-[#C81E3A] hover:text-[#C81E3A] hover:scale-105 active:scale-95 lg:flex"
+          className="fixed left-4 top-4 z-50 hidden h-10 w-10 items-center justify-center rounded border border-[#2A2828] bg-[#151417]/90 text-lg text-[#EDE9E6] shadow-[0_4px_16px_rgba(0,0,0,0.6)] backdrop-blur-xs transition-all duration-200 hover:border-[#C81E3A] hover:text-[#C81E3A] hover:scale-105 active:scale-95 lg:flex cursor-pointer"
         >
           <span className="leading-none text-base">☰</span>
         </button>
