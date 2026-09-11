@@ -1,5 +1,22 @@
-import { useEffect, useRef } from 'react'
 import * as Tone from 'tone'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AudioContext Configuration
+// Use 'playback' latencyHint for a larger audio buffer, ensuring maximum
+// audio stability and eliminating crackle/clicks during rapid repeated playback.
+// ─────────────────────────────────────────────────────────────────────────────
+if (typeof window !== 'undefined') {
+  try {
+    const ctx = new Tone.Context({ latencyHint: 'playback' })
+    Tone.setContext(ctx)
+  } catch (err) {
+    try {
+      Tone.getContext().latencyHint = 'playback'
+    } catch {
+      // ignore
+    }
+  }
+}
 
 export const LAUNCHPAD_PADS = [
   { id: 1, name: 'Kick Deep', key: '1', note: 'C1', type: 'membrane', color: 'border-red-600 bg-red-950/40' },
@@ -44,9 +61,10 @@ let resumePromise = null
  * prematurely clipping previous envelopes.
  */
 class PolyNoiseSynth {
-  constructor(options, voiceCount = 6) {
+  constructor(options, voiceCount = 8) {
     this.voices = Array.from({ length: voiceCount }, () => new Tone.NoiseSynth(options))
     this.voiceIndex = 0
+    this.maxPolyphony = voiceCount
     this._volumeValue = 0
     this.volume = {
       _parent: this,
@@ -95,9 +113,11 @@ function initSynths() {
     // ── 1. Piano Fallback Synth (PolySynth) ──────────────────────────────────
     // Rich, warm triangle-wave polyphonic piano that works 100% offline immediately.
     const polySynth = new Tone.PolySynth(Tone.Synth, {
+      maxPolyphony: 8,
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.005, decay: 0.8, sustain: 0.25, release: 1.2 },
     }).connect(masterLimiter)
+    polySynth.maxPolyphony = 8
     polySynth.volume.value = -2
     fallbackPiano = polySynth
 
@@ -125,18 +145,21 @@ function initSynths() {
 
     // ── 3. Launchpad Synths ──────────────────────────────────────────────────
     const kickSynth = new Tone.PolySynth(Tone.MembraneSynth, {
+      maxPolyphony: 8,
       pitchDecay: 0.05,
       octaves: 4,
     }).connect(masterLimiter)
+    kickSynth.maxPolyphony = 8
     kickSynth.volume.value = -2
 
     const snareNoise = new PolyNoiseSynth({
       noise: { type: 'white' },
       envelope: { attack: 0.001, decay: 0.15, sustain: 0 },
-    }).connect(masterLimiter)
+    }, 8).connect(masterLimiter)
     snareNoise.volume.value = -4
 
     const metalSynth = new Tone.PolySynth(Tone.MetalSynth, {
+      maxPolyphony: 8,
       frequency: 200,
       envelope: { attack: 0.001, decay: 0.08, release: 0.01 },
       harmonicity: 5.1,
@@ -144,12 +167,16 @@ function initSynths() {
       resonance: 4000,
       octaves: 1.5,
     }).connect(masterLimiter)
+    metalSynth.maxPolyphony = 8
     metalSynth.volume.value = -8
 
     const fmSynth = new Tone.FMSynth().connect(masterLimiter)
     fmSynth.volume.value = -4
 
-    const leadSynth = new Tone.PolySynth(Tone.Synth).connect(masterLimiter)
+    const leadSynth = new Tone.PolySynth(Tone.Synth, {
+      maxPolyphony: 8,
+    }).connect(masterLimiter)
+    leadSynth.maxPolyphony = 8
     leadSynth.volume.value = -4
 
     synths = {
@@ -169,19 +196,22 @@ function initSynths() {
 
     // ── 4. Drum Kit Synths ───────────────────────────────────────────────────
     const drumKick = new Tone.PolySynth(Tone.MembraneSynth, {
+      maxPolyphony: 8,
       pitchDecay: 0.05,
       octaves: 5,
       envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.05 },
     }).connect(masterLimiter)
+    drumKick.maxPolyphony = 8
     drumKick.volume.value = 0
 
     const drumSnare = new PolyNoiseSynth({
       noise: { type: 'white' },
       envelope: { attack: 0.001, decay: 0.14, sustain: 0, release: 0.03 },
-    }).connect(masterLimiter)
+    }, 8).connect(masterLimiter)
     drumSnare.volume.value = -4
 
     const drumHihat = new Tone.PolySynth(Tone.MetalSynth, {
+      maxPolyphony: 8,
       frequency: 450,
       envelope: { attack: 0.001, decay: 0.04, release: 0.01 },
       harmonicity: 5.1,
@@ -189,16 +219,20 @@ function initSynths() {
       resonance: 4500,
       octaves: 1.5,
     }).connect(masterLimiter)
+    drumHihat.maxPolyphony = 8
     drumHihat.volume.value = -8
 
     const drumTom = new Tone.PolySynth(Tone.MembraneSynth, {
+      maxPolyphony: 8,
       pitchDecay: 0.04,
       octaves: 3,
       envelope: { attack: 0.001, decay: 0.16, sustain: 0, release: 0.04 },
     }).connect(masterLimiter)
+    drumTom.maxPolyphony = 8
     drumTom.volume.value = -2
 
     const drumCymbal = new Tone.PolySynth(Tone.MetalSynth, {
+      maxPolyphony: 8,
       frequency: 320,
       envelope: { attack: 0.001, decay: 0.25, release: 0.05 },
       harmonicity: 5.1,
@@ -206,12 +240,13 @@ function initSynths() {
       resonance: 4000,
       octaves: 1.5,
     }).connect(masterLimiter)
+    drumCymbal.maxPolyphony = 8
     drumCymbal.volume.value = -8
 
     const drumClap = new PolyNoiseSynth({
       noise: { type: 'pink' },
       envelope: { attack: 0.002, decay: 0.1, sustain: 0, release: 0.02 },
-    }).connect(masterLimiter)
+    }, 8).connect(masterLimiter)
     drumClap.volume.value = -4
 
     drumSynths = {
